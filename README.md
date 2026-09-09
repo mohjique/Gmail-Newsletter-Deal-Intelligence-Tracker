@@ -122,20 +122,21 @@ To turn off automation at any time, run **`removeDailyTrigger`**.
 If configured, the script sends you a Telegram message for every new deal the moment it's written to the sheet — no extra trigger needed, it's built into the same write step.
 
 1. Message [@BotFather](https://t.me/BotFather) on Telegram, send `/newbot`, and follow the prompts to create a bot. It will give you a **bot token** (looks like `123456789:ABCdefGhIJKlmNoPQRstuVwxyZ`).
-2. Start a chat with your new bot (search for it by the username you gave it) and send it any message — this is required so the bot is allowed to message you back.
-3. Find your **chat ID**: open this URL in your browser (replace `<TOKEN>` with your bot token) after sending the bot a message:
+2. In the same BotFather chat, send `/mybots`, select your new bot → **Bot Settings** → **Group Privacy** → **Turn off**. (You can also do this directly with `/setprivacy`.) Do this even though you're only using the bot in a private chat — with privacy mode left on, `getUpdates` in step 4 can come back empty.
+3. Start a chat with your new bot (search for it by the username you gave it) and send it any message — this is required so the bot is allowed to message you back.
+4. Find your **chat ID**: open this URL in your browser (replace `<TOKEN>` with your bot token) after sending the bot a message:
    ```
    https://api.telegram.org/bot<TOKEN>/getUpdates
    ```
    Look for `"chat":{"id":123456789,...}` in the response — that number is your chat ID.
-4. Back in Apps Script, add two more Script Properties (same place as Step 5):
+5. Back in Apps Script, add two more Script Properties (same place as Step 5):
 
    | Property name | Value |
    |---------------|-------|
    | `TELEGRAM_BOT_TOKEN` | The bot token from step 1 |
-   | `TELEGRAM_CHAT_ID` | The chat ID from step 3 |
+   | `TELEGRAM_CHAT_ID` | The chat ID from step 4 |
 
-5. Select **`testTelegramNotification`** from the function dropdown and click **Run** to confirm you receive a test message.
+6. Select **`testTelegramNotification`** from the function dropdown and click **Run** to confirm you receive a test message.
 
 Leave both properties unset to run without Telegram — the script checks for them and silently skips notifications if either is missing.
 
@@ -184,6 +185,9 @@ Leave both properties unset to run without Telegram — the script checks for th
 - Confirm `TELEGRAM_BOT_TOKEN` and `TELEGRAM_CHAT_ID` are both set in Script Properties
 - Make sure you sent your bot at least one message before fetching `getUpdates` — bots can't message users first
 - Run `testTelegramNotification` and check the Execution log for the exact error
+
+**`getUpdates` returns an empty `"result":[]`**
+- Group Privacy is still on for your bot — go to @BotFather → `/mybots` → your bot → Bot Settings → Group Privacy → Turn off, then send your bot a new message and retry
 
 ---
 
