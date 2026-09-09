@@ -14,8 +14,11 @@
 const CONFIG = {
   // Retrieved from Script Properties — never hardcode keys here
   // Set these in: Project Settings > Script Properties
-  get GEMINI_API_KEY() { return PropertiesService.getScriptProperties().getProperty('GEMINI_API_KEY'); },
-  get SHEET_ID()       { return PropertiesService.getScriptProperties().getProperty('SHEET_ID'); },
+  get GEMINI_API_KEY()     { return PropertiesService.getScriptProperties().getProperty('GEMINI_API_KEY'); },
+  get SHEET_ID()           { return PropertiesService.getScriptProperties().getProperty('SHEET_ID'); },
+  // Optional — leave unset in Script Properties to disable Telegram notifications
+  get TELEGRAM_BOT_TOKEN() { return PropertiesService.getScriptProperties().getProperty('TELEGRAM_BOT_TOKEN'); },
+  get TELEGRAM_CHAT_ID()   { return PropertiesService.getScriptProperties().getProperty('TELEGRAM_CHAT_ID'); },
 
   SHEET_NAME:      'Deals',
   PROCESSED_SHEET: 'Processed',   // hidden tab that caches processed thread IDs
@@ -279,6 +282,7 @@ function filterAndWrite(deals, existingHashes) {
     ]);
 
     existingHashes.add(hash);
+    sendTelegramNotification(deal);
   }
 
   if (rows.length > 0) {
@@ -287,6 +291,87 @@ function filterAndWrite(deals, existingHashes) {
   }
 
   return rows.length;
+}
+
+
+// ---------------------------------------------------------------------------
+// TELEGRAM NOTIFICATIONS
+// ---------------------------------------------------------------------------
+
+var TELEGRAM_CATEGORY_LABELS = {
+  vc_funding: '💰 VC Funding',
+  ma:         '🤝 M&A',
+  ipo:        '📈 IPO',
+  notable:    '📰 Notable',
+  layoffs:    '📉 Layoffs',
+  leadership: '👤 Leadership Change',
+};
+
+function sendTelegramNotification(deal) {
+  if (!CONFIG.TELEGRAM_BOT_TOKEN || !CONFIG.TELEGRAM_CHAT_ID) return;
+
+  var url = 'https://api.telegram.org/bot' + CONFIG.TELEGRAM_BOT_TOKEN + '/sendMessage';
+
+  var options = {
+    method: 'post',
+    contentType: 'application/json',
+    payload: JSON.stringify({
+      chat_id: CONFIG.TELEGRAM_CHAT_ID,
+      text: formatTelegramMessage(deal),
+      parse_mode: 'HTML',
+      disable_web_page_preview: true,
+    }),
+    muteHttpExceptions: true,
+  };
+
+  try {
+    var response = UrlFetchApp.fetch(url, options);
+    if (response.getResponseCode() !== 200) {
+      Logger.log('Telegram notification failed: ' + response.getContentText());
+    }
+  } catch(e) {
+    Logger.log('Error sending Telegram notification: ' + e.message);
+  }
+}
+
+function formatTelegramMessage(deal) {
+  var lines = [];
+
+  lines.push('<b>' + (TELEGRAM_CATEGORY_LABELS[deal.category] || deal.category) + '</b>');
+  lines.push('<b>' + escapeHtml(deal.company || 'Unknown company') + '</b>' +
+    (deal.deal_type ? ' — ' + escapeHtml(deal.deal_type) : ''));
+
+  if (deal.amount != null && deal.amount !== '') lines.push('💵 $' + deal.amount + 'M');
+  if (deal.parties)                              lines.push('🔗 ' + escapeHtml(deal.parties));
+  if (deal.sector)                               lines.push('🏷 ' + escapeHtml(deal.sector));
+  if (deal.summary)                              lines.push(escapeHtml(deal.summary));
+
+  lines.push('📅 ' + (deal.date || '') + '  •  ' + (deal.source || ''));
+
+  return lines.join('\n');
+}
+
+function escapeHtml(str) {
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+}
+
+function testTelegramNotification() {
+  sendTelegramNotification({
+    date: Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyy-MM-dd'),
+    category: 'vc_funding',
+    company: 'Test Co',
+    deal_type: 'Series B',
+    amount: 50,
+    parties: 'Example Ventures',
+    stage: 'Series B',
+    sector: 'AI/ML',
+    summary: 'This is a test notification to confirm Telegram is configured correctly.',
+    source: 'TechCrunch',
+  });
+  Logger.log('Test Telegram notification sent (check your chat, and the Execution log for errors).');
 }
 
 

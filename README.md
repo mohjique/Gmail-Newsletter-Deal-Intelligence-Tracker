@@ -4,6 +4,8 @@ A Google Apps Script that reads your VC and startup newsletter emails, uses Goog
 
 **What it captures:** VC funding rounds, M&A deals, IPOs, notable company moves, layoffs, and leadership changes.
 
+**Optional:** Get a Telegram message the moment a new deal is written to the sheet — see [Step 8](#step-8--optional-enable-telegram-notifications).
+
 **Cost:** Free. Uses Gemini 2.0 Flash via Google AI Studio's free tier (1,500 requests/day — far beyond any newsletter volume).
 
 ---
@@ -15,7 +17,8 @@ A Google Apps Script that reads your VC and startup newsletter emails, uses Goog
 3. Emails with no relevant signals are dropped before touching the AI
 4. Batches of 10 emails are sent to Gemini 2.0 Flash for structured extraction
 5. Each extracted deal is deduplicated via MD5 hash and written to Google Sheets
-6. Processed thread IDs are cached so nothing is ever scanned twice
+6. If Telegram is configured, a message is sent for each new deal as it's written
+7. Processed thread IDs are cached so nothing is ever scanned twice
 
 ---
 
@@ -114,6 +117,30 @@ To turn off automation at any time, run **`removeDailyTrigger`**.
 
 ---
 
+## Step 8 — (Optional) Enable Telegram notifications
+
+If configured, the script sends you a Telegram message for every new deal the moment it's written to the sheet — no extra trigger needed, it's built into the same write step.
+
+1. Message [@BotFather](https://t.me/BotFather) on Telegram, send `/newbot`, and follow the prompts to create a bot. It will give you a **bot token** (looks like `123456789:ABCdefGhIJKlmNoPQRstuVwxyZ`).
+2. Start a chat with your new bot (search for it by the username you gave it) and send it any message — this is required so the bot is allowed to message you back.
+3. Find your **chat ID**: open this URL in your browser (replace `<TOKEN>` with your bot token) after sending the bot a message:
+   ```
+   https://api.telegram.org/bot<TOKEN>/getUpdates
+   ```
+   Look for `"chat":{"id":123456789,...}` in the response — that number is your chat ID.
+4. Back in Apps Script, add two more Script Properties (same place as Step 5):
+
+   | Property name | Value |
+   |---------------|-------|
+   | `TELEGRAM_BOT_TOKEN` | The bot token from step 1 |
+   | `TELEGRAM_CHAT_ID` | The chat ID from step 3 |
+
+5. Select **`testTelegramNotification`** from the function dropdown and click **Run** to confirm you receive a test message.
+
+Leave both properties unset to run without Telegram — the script checks for them and silently skips notifications if either is missing.
+
+---
+
 ## Sheet structure
 
 | Column | Field | Notes |
@@ -152,6 +179,11 @@ To turn off automation at any time, run **`removeDailyTrigger`**.
 
 **Duplicate rows appearing**
 - Do not delete or move column K — the dedup check depends on it being in position 11
+
+**Telegram notifications not arriving**
+- Confirm `TELEGRAM_BOT_TOKEN` and `TELEGRAM_CHAT_ID` are both set in Script Properties
+- Make sure you sent your bot at least one message before fetching `getUpdates` — bots can't message users first
+- Run `testTelegramNotification` and check the Execution log for the exact error
 
 ---
 
