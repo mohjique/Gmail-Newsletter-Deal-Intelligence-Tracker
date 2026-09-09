@@ -121,13 +121,13 @@ To turn off automation at any time, run **`removeDailyTrigger`**.
 | A | Date | Date of the email |
 | B | Category | vc_funding / ma / ipo / notable / layoffs / leadership |
 | C | Company | Primary company name |
-| D | Deal Type | e.g. Series A, Acquisition, IPO, CEO Change |
-| E | Amount (USD) | e.g. $500M, $1.3B — blank if not mentioned |
+| D | Deal Type | Fixed list: Seed / Series A–E+ / Growth Round / Acquisition / Merger / IPO / Funding Round / Layoff / Leadership Change / Other |
+| E | Amount (USD, millions) | Plain number, no $ sign — e.g. `500` = $500M, `1300` = $1.3B, `0.5` = $500K; blank if not mentioned |
 | F | Investors / Acquirer / Parties | External parties only |
-| G | Stage | Seed / Series A–E+ / Growth / Public |
-| H | Sector | e.g. AI/ML, Fintech, SaaS, Healthcare |
+| G | Stage | Seed / Series A–E+ / Growth / Public / blank |
+| H | Sector | Fixed list — AI/ML, Fintech, Biotech, Healthcare, Cybersecurity, Defense, Robotics, Semiconductors, Energy & Climate, Space & Aerospace, SaaS / Enterprise Software, Crypto / Web3, Logistics & Supply Chain, Media & Entertainment, Quantum Computing, AgTech, Deep Tech / Hardware, Real Estate & PropTech, EdTech, Legal Tech, Data Infrastructure, Automotive & Mobility, Consumer & Retail, GovTech, Venture Capital, Telecommunications, Technology, Other |
 | I | Summary | One sentence, max 20 words |
-| J | Source Newsletter | Human-readable name, e.g. TechCrunch |
+| J | Source Newsletter | Fixed list: StrictlyVC / TechCrunch / Newcomer / Cheddar / Opening Bell / Axios / Tom Tunguz / VC Deals |
 | K | Dedup Hash | **Do not delete** — used for deduplication |
 
 ---
