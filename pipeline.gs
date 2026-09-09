@@ -166,14 +166,26 @@ function callGeminiForDeals(emails) {
   }).join('\n\n');
 
   var prompt = 'Extract all deals from these emails and return a JSON array. Each object must have:\n' +
-    'date(YYYY-MM-DD), category(vc_funding|ma|ipo|notable|layoffs|leadership), company, deal_type, ' +
-    'amount(always use $+number+M/B/K suffix e.g."$500M","$1.3B","$50K"; null if unmentioned), ' +
-    'parties(EXTERNAL investors/acquirers/counterparties only — never the company itself; if no external party is named use null), ' +
-    'stage(Seed|Series A|Series B|Series C|Series D|Series E+|Growth|Public|null), ' +
-    'sector, summary(one concise sentence max 20 words), ' +
-    'source(human-readable newsletter name e.g."TechCrunch" not "newsletters@techcrunch.com")\n' +
-    'Only extract explicitly stated deals. If money changes hands for equity always use vc_funding or ma over notable. ' +
-    'Return [] if none. No markdown, no explanation.\n\n' +
+    'date(YYYY-MM-DD),\n' +
+    'category(must be exactly one of: vc_funding | ma | ipo | notable | layoffs | leadership),\n' +
+    'company(primary company name as a string),\n' +
+    'deal_type(must be exactly one of: Seed | Series A | Series B | Series C | Series D | Series E+ | Growth Round | Acquisition | Merger | IPO | Funding Round | Layoff | Leadership Change | Other),\n' +
+    'amount(plain number in millions, no $ sign or suffix — e.g. 500 for $500M, 1300 for $1.3B, 0.5 for $500K, 45.5 for $45.5M; if a range use the midpoint e.g. "$40M-$60M" becomes 50; if approximate e.g. "~$500M" use the stated number; null if not mentioned),\n' +
+    'parties(external investors, acquirers, or counterparties only — never the company itself; comma-separated string; null if none named),\n' +
+    'stage(must be exactly one of: Seed | Series A | Series B | Series C | Series D | Series E+ | Growth | Public | null if not applicable),\n' +
+    'sector(must be exactly one of: AI/ML | Fintech | Biotech | Healthcare | Cybersecurity | Defense | Robotics | Semiconductors | Energy & Climate | Space & Aerospace | SaaS / Enterprise Software | Crypto / Web3 | Logistics & Supply Chain | Media & Entertainment | Quantum Computing | AgTech | Deep Tech / Hardware | Real Estate & PropTech | EdTech | Legal Tech | Data Infrastructure | Automotive & Mobility | Consumer & Retail | GovTech | Venture Capital | Telecommunications | Technology | Other),\n' +
+    'summary(one concise sentence, max 20 words),\n' +
+    'source(must be exactly one of: StrictlyVC | TechCrunch | Newcomer | Cheddar | Opening Bell | Axios | Tom Tunguz | VC Deals — match to the closest regardless of exact sender name in the email header)\n\n' +
+    'Rules:\n' +
+    '- All field values must strictly match the allowed lists above. Do not invent new values.\n' +
+    '- If uncertain which sector fits, use Other.\n' +
+    '- If uncertain which deal_type fits, use Other.\n' +
+    '- If stage is not applicable or unclear, use null.\n' +
+    '- Amount must be a plain number in millions or null. Never output a string, $ sign, or suffix.\n' +
+    '- If money changes hands for equity always use vc_funding or ma over notable.\n' +
+    '- Only extract explicitly stated deals — do not infer or hallucinate.\n' +
+    '- Return [] if no relevant deals found.\n' +
+    '- No markdown, no explanation. Pure JSON only.\n\n' +
     emailsText;
 
   var url = 'https://generativelanguage.googleapis.com/v1beta/models/' + CONFIG.MODEL + ':generateContent?key=' + CONFIG.GEMINI_API_KEY;
