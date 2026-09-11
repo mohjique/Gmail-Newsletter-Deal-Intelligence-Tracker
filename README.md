@@ -6,7 +6,7 @@ A Google Apps Script that reads your VC and startup newsletter emails, uses Goog
 
 **Optional:** Get a Telegram message the moment a new deal is written to the sheet — see [Step 8](#step-8--optional-enable-telegram-notifications).
 
-**Cost:** Free. Uses Gemini 2.0 Flash via Google AI Studio's free tier (1,500 requests/day — far beyond any newsletter volume).
+**Cost:** Free. Uses Google Gemini via Google AI Studio's free tier (1,500 requests/day — far beyond any newsletter volume). The exact model is set in `CONFIG.MODEL` in `Code.gs`.
 
 ---
 
@@ -15,7 +15,7 @@ A Google Apps Script that reads your VC and startup newsletter emails, uses Goog
 1. Each morning, Gmail is queried for emails from your configured newsletter senders
 2. Each email is cleaned, compressed, and checked for deal-relevant keywords
 3. Emails with no relevant signals are dropped before touching the AI
-4. Batches of 10 emails are sent to Gemini 2.0 Flash for structured extraction
+4. Batches of 10 emails are sent to Gemini for structured extraction, with automatic retry (up to 4 attempts, backing off 2s / 5s / 10s) if Gemini returns a transient 5xx error
 5. Each extracted deal is deduplicated via MD5 hash and written to Google Sheets
 6. If Telegram is configured, a message is sent for each new deal as it's written
 7. Processed thread IDs are cached so nothing is ever scanned twice
@@ -50,7 +50,7 @@ You will need this later.
 
 1. Go to [script.google.com](https://script.google.com) and click **New project**
 2. Delete the placeholder code in the editor
-3. Paste the full contents of `pipeline.gs` from this repo
+3. Paste the full contents of `Code.gs` from this repo
 4. Click **Save** (Ctrl+S / Cmd+S)
 
 ---
@@ -174,6 +174,11 @@ Leave both properties unset to run without Telegram — the script checks for th
 - Confirm your API key is valid at [aistudio.google.com](https://aistudio.google.com)
 - Make sure the Gemini API is enabled for your key
 
+**Gemini API error 503 ("high demand") or other 5xx**
+- These are transient and retried automatically (up to 4 attempts, backing off 2s / 5s / 10s) — check the Execution log for "retrying in Ns" entries
+- If all retries fail, the batch is skipped for that run; use `reprocessDate()` (see [Recovering a missed day](#recovering-a-missed-day)) to catch it up later
+- A parse failure after a successful response logs Gemini's raw output (first 2000 chars) to help diagnose malformed JSON
+
 **Authorization error on first run**
 - Click through the Google authorization flow — you need to grant access to both Gmail and Google Sheets
 - If prompted about an unverified app, click Advanced > Go to [project name] (unsafe)
@@ -191,10 +196,28 @@ Leave both properties unset to run without Telegram — the script checks for th
 
 ---
 
+## Recovering a missed day
+
+If a run fails partway (e.g. Gemini was down long enough to exhaust the retries), `reprocessDate(dateStr)` re-scans a single day's threads and writes any deals that are still missing — without touching the `Processed` tab, so it's safe to run as many times as you like.
+
+The function dropdown in the Apps Script editor can't pass arguments, so to target a specific date, add a temporary wrapper and run that instead:
+
+```javascript
+function runRecovery() {
+  reprocessDate('2026-09-10');   // YYYY-MM-DD
+}
+```
+
+Select **`runRecovery`** from the function dropdown and click **Run**. Omit the argument (`reprocessDate()`) to reprocess today. Delete the wrapper once you're done.
+
+Deduplication still applies — deals already in the sheet won't be written twice — but existing rows are not overwritten, so use this to fill gaps, not to correct bad data already written.
+
+---
+
 ## Repo structure
 
 ```
-├── pipeline.gs   # Full Apps Script source
+├── Code.gs       # Full Apps Script source
 └── README.md     # This file
 ```
 
